@@ -38,7 +38,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # =====================================
-# DagsHub + MLflow
+# DagsHub
 # =====================================
 
 print("DAGSHUB TOKEN FOUND:", bool(os.getenv("DAGSHUB_TOKEN")))
@@ -54,107 +54,113 @@ dagshub.init(
     mlflow=True
 )
 
+# =====================================
+# MLflow Experiment
+# =====================================
+
 mlflow.set_experiment("Telco Churn Advanced")
 
-with mlflow.start_run(run_name="RandomForest_Tuning_v1"):
+# =====================================
+# Model
+# =====================================
 
-    rf = RandomForestClassifier(
-        random_state=42
-    )
+rf = RandomForestClassifier(
+    random_state=42
+)
 
-    param_dist = {
-        "n_estimators": [100, 200, 300],
-        "max_depth": [5, 10, 15, None],
-        "min_samples_split": [2, 5, 10]
-    }
+param_dist = {
+    "n_estimators": [100, 200, 300],
+    "max_depth": [5, 10, 15, None],
+    "min_samples_split": [2, 5, 10]
+}
 
-    search = RandomizedSearchCV(
-        estimator=rf,
-        param_distributions=param_dist,
-        n_iter=10,
-        cv=3,
-        scoring="f1",
-        random_state=42,
-        n_jobs=-1
-    )
+search = RandomizedSearchCV(
+    estimator=rf,
+    param_distributions=param_dist,
+    n_iter=10,
+    cv=3,
+    scoring="f1",
+    random_state=42,
+    n_jobs=-1
+)
 
-    search.fit(X_train, y_train)
+search.fit(X_train, y_train)
 
-    best_model = search.best_estimator_
+best_model = search.best_estimator_
 
-    y_pred = best_model.predict(X_test)
+# =====================================
+# Prediction
+# =====================================
 
-    accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred)
-    recall = recall_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred)
+y_pred = best_model.predict(X_test)
 
-    print("Best Params :", search.best_params_)
-    print("Accuracy    :", accuracy)
-    print("Precision   :", precision)
-    print("Recall      :", recall)
-    print("F1 Score    :", f1)
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred)
+recall = recall_score(y_test, y_pred)
+f1 = f1_score(y_test, y_pred)
 
-    # ======================
-    # Log Parameter
-    # ======================
+print("Best Params :", search.best_params_)
+print("Accuracy    :", accuracy)
+print("Precision   :", precision)
+print("Recall      :", recall)
+print("F1 Score    :", f1)
 
-    mlflow.log_params(search.best_params_)
+# =====================================
+# MLflow Logging
+# =====================================
 
-    # ======================
-    # Log Metrics
-    # ======================
+mlflow.log_params(search.best_params_)
 
-    mlflow.log_metric("accuracy", accuracy)
-    mlflow.log_metric("precision", precision)
-    mlflow.log_metric("recall", recall)
-    mlflow.log_metric("f1_score", f1)
+mlflow.log_metric("accuracy", accuracy)
+mlflow.log_metric("precision", precision)
+mlflow.log_metric("recall", recall)
+mlflow.log_metric("f1_score", f1)
 
-    # ======================
-    # Confusion Matrix
-    # ======================
+# =====================================
+# Confusion Matrix
+# =====================================
 
-    fig, ax = plt.subplots()
+fig, ax = plt.subplots()
 
-    ConfusionMatrixDisplay.from_predictions(
-        y_test,
-        y_pred,
-        ax=ax
-    )
+ConfusionMatrixDisplay.from_predictions(
+    y_test,
+    y_pred,
+    ax=ax
+)
 
-    plt.savefig("confusion_matrix.png")
-    plt.close()
+plt.savefig("confusion_matrix.png")
+plt.close()
 
-    mlflow.log_artifact("confusion_matrix.png")
+mlflow.log_artifact("confusion_matrix.png")
 
-    # ======================
-    # Feature Importance
-    # ======================
+# =====================================
+# Feature Importance
+# =====================================
 
-    importance_df = pd.DataFrame({
-        "feature": X.columns,
-        "importance": best_model.feature_importances_
-    })
+importance_df = pd.DataFrame({
+    "feature": X.columns,
+    "importance": best_model.feature_importances_
+})
 
-    importance_df = importance_df.sort_values(
-        by="importance",
-        ascending=False
-    )
+importance_df = importance_df.sort_values(
+    by="importance",
+    ascending=False
+)
 
-    importance_df.to_csv(
-        "feature_importance.csv",
-        index=False
-    )
+importance_df.to_csv(
+    "feature_importance.csv",
+    index=False
+)
 
-    mlflow.log_artifact("feature_importance.csv")
+mlflow.log_artifact("feature_importance.csv")
 
-    # ======================
-    # Log Model
-    # ======================
+# =====================================
+# Log Model
+# =====================================
 
-    mlflow.sklearn.log_model(
-        sk_model=best_model,
-        name="model"
-    )
+mlflow.sklearn.log_model(
+    sk_model=best_model,
+    name="model"
+)
 
 print("Training selesai")
