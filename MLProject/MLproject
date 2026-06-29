@@ -10,3 +10,5 @@ entry_points:
   tuning:
     command: python modelling_tuning.py
 
+  ci:
+    command: python modelling_ci.py
