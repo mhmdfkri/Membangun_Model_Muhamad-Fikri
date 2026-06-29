@@ -1,5 +1,7 @@
-import pandas as pd
+import os
 import joblib
+import pandas as pd
+
 import mlflow
 import mlflow.sklearn
 
@@ -13,16 +15,26 @@ from sklearn.metrics import (
 )
 
 # =====================================
-# MLflow Autolog (WAJIB untuk Basic)
+# MLflow Configuration
 # =====================================
 
+mlflow.set_tracking_uri("sqlite:///mlflow.db")
+mlflow.set_experiment("Telco Churn Basic")
+
+# Wajib untuk Basic
 mlflow.autolog()
+
+# =====================================
+# Folder Output
+# =====================================
+
+os.makedirs("models", exist_ok=True)
 
 # =====================================
 # Load Dataset
 # =====================================
 
-df = pd.read_csv("../data/telco_processed.csv")
+df = pd.read_csv("data/telco_processed.csv")
 
 # =====================================
 # Feature & Target
@@ -35,7 +47,10 @@ y = df["Churn Label"]
 # One Hot Encoding
 # =====================================
 
-X = pd.get_dummies(X, drop_first=True)
+X = pd.get_dummies(
+    X,
+    drop_first=True
+)
 
 # =====================================
 # Train Test Split
@@ -50,53 +65,45 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # =====================================
-# MLflow Experiment
+# Training
 # =====================================
-
-mlflow.set_experiment(
-    "Telco Churn Basic"
-)
 
 with mlflow.start_run(run_name="RandomForest_Basic"):
 
-    # =====================================
-    # Model Training
-    # =====================================
-
-    rf = RandomForestClassifier(
+    model = RandomForestClassifier(
         n_estimators=200,
         random_state=42
     )
 
-    rf.fit(X_train, y_train)
+    model.fit(X_train, y_train)
 
-    # =====================================
     # Prediction
-    # =====================================
 
-    y_pred = rf.predict(X_test)
+    y_pred = model.predict(X_test)
 
-    # =====================================
     # Evaluation
-    # =====================================
 
     accuracy = accuracy_score(y_test, y_pred)
     precision = precision_score(y_test, y_pred)
     recall = recall_score(y_test, y_pred)
     f1 = f1_score(y_test, y_pred)
 
-    print(f"Accuracy : {accuracy:.4f}")
-    print(f"Precision: {precision:.4f}")
-    print(f"Recall   : {recall:.4f}")
-    print(f"F1 Score : {f1:.4f}")
+    print("=" * 50)
+    print("MODEL PERFORMANCE")
+    print("=" * 50)
 
-    # =====================================
-    # Save Model
-    # =====================================
+    print(f"Accuracy  : {accuracy:.4f}")
+    print(f"Precision : {precision:.4f}")
+    print(f"Recall    : {recall:.4f}")
+    print(f"F1 Score  : {f1:.4f}")
+
+    # Simpan model (untuk inference)
 
     joblib.dump(
-        rf,
-        "random_forest.pkl"
+        model,
+        "models/random_forest.pkl"
     )
 
-print("Model berhasil disimpan")
+print("\nTraining selesai.")
+print("Model disimpan di models/random_forest.pkl")
+print("MLflow Tracking menggunakan SQLite")
